@@ -52,6 +52,7 @@ public class UniversalPluginManager extends JavaPlugin {
         cm = new ChatManager(this);
         man = new UPM_IOManager();
         man.init(this);
+        getServer().getPluginManager().registerEvents(cm, this);
         parentconfig = man.loadConfig();
         password = parentconfig.getString("password");
 
@@ -77,6 +78,8 @@ public class UniversalPluginManager extends JavaPlugin {
         List<String> supportedPlugins = new Vector<String>();
         for (Plugin p : plugins)
             try {
+                Bukkit.broadcastMessage(p.getName());
+                Bukkit.broadcastMessage(p.getConfig().getBoolean("upm") + "");
                 if (p.getConfig().getBoolean("upm")) supportedPlugins.add(p.getName());
             } catch (Exception e) {
                 ;

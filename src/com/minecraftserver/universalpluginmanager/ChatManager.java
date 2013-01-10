@@ -1,9 +1,10 @@
 package com.minecraftserver.universalpluginmanager;
 
 import org.bukkit.entity.Player;
+import org.bukkit.event.Listener;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
 
-public class ChatManager {
+public class ChatManager implements Listener {
     private UniversalPluginManager plugin;
     private boolean                chatON;
     private Player                 player;
