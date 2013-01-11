@@ -40,6 +40,7 @@ public class UniversalPluginManager extends JavaPlugin {
     private UPM_IOManager     man;
     private YamlConfiguration parentconfig;
     private FileConfiguration pluginconfig;
+    private String            loadedplugin;
 
     public void onEnable() {
         if (!getDataFolder().exists()) getDataFolder().mkdir();
@@ -85,8 +86,9 @@ public class UniversalPluginManager extends JavaPlugin {
     }
 
     private void saveExternalPluginConfig(Plugin pl) throws IOException {
-        File configFile = new File(pl.getDataFolder(), "config.yml");
-        pluginconfig.save(configFile);
+        File filePath = new File(pl.getDataFolder(), "config.yml");
+        Bukkit.broadcastMessage(filePath + "");
+        pluginconfig.save(filePath);
     }
 
     private boolean updatePlugin(final String u, final Plugin plugin) {
@@ -96,7 +98,6 @@ public class UniversalPluginManager extends JavaPlugin {
                 String out;
                 try {
                     String updateURL = getPluginUpdateURL(u);
-                    Bukkit.broadcastMessage(u);
                     if (u == null) return;
                     File to = new File(plugin.getServer().getUpdateFolderFile(), updateURL
                             .substring(updateURL.lastIndexOf('/') + 1, updateURL.length()));
@@ -130,7 +131,6 @@ public class UniversalPluginManager extends JavaPlugin {
         URL url;
         try {
             url = new URL(u);
-            Bukkit.broadcastMessage(u);
             HttpURLConnection con = (HttpURLConnection) url.openConnection();
             con.connect();
             int res = con.getResponseCode();
@@ -149,20 +149,20 @@ public class UniversalPluginManager extends JavaPlugin {
                     ir.close();
                     return null;
                 }
-
                 JSONObject jo = (JSONObject) o;
                 jo = (JSONObject) jo.get("versions");
                 nv = (String) jo.get("version");
                 cl = (String) jo.get("changelog");
-                String[] result = { nv, cl };
-                Bukkit.broadcastMessage(result.toString());
+                String[] result = new String[2];
+                result[0] = nv;
+                result[1] = cl;
                 return result;
             } catch (Exception e) {
                 ir.close();
                 return null;
             }
         } catch (Exception e1) {
-            e1.printStackTrace();
+            cm.sendMessage("ERROR: Probably an URL error!!");
         }
         return null;
     }
@@ -172,7 +172,6 @@ public class UniversalPluginManager extends JavaPlugin {
         URL url;
         try {
             url = new URL(u);
-            Bukkit.broadcastMessage(u);
             HttpURLConnection con = (HttpURLConnection) url.openConnection();
             con.connect();
             int res = con.getResponseCode();
@@ -236,7 +235,7 @@ public class UniversalPluginManager extends JavaPlugin {
                     for (String s : getSupportedPlugins())
                         cm.sendMessage(ChatColor.LIGHT_PURPLE + s);
                 } else if (args[0].equalsIgnoreCase("load-cfg")) {
-                    if (args.length>1&&args[1] != null) {
+                    if (args.length > 1 && args[1] != null) {
                         if (getSupportedPlugins().contains(args[1])) {
                             Plugin pl = Bukkit.getPluginManager().getPlugin(args[1]);
                             if (changed) {
@@ -247,10 +246,11 @@ public class UniversalPluginManager extends JavaPlugin {
                                 cm.sendMessage(ChatColor.GRAY + "TODO, not implemted yet...");
                             }
                             // TODO unsaved changes? really want to load?
-                            pluginconfig = pl.getConfig();
+                            pluginconfig = loadExternalConfig(pl);
                             cm.sendMessage(ChatColor.LIGHT_PURPLE + "Config loaded successfull");
                             this.loaded = true;
                             this.changed = false;
+                            this.loadedplugin = pl.getName();
                         } else cm.sendMessage(ChatColor.LIGHT_PURPLE + "Plugin " + ChatColor.GOLD
                                 + args[1] + ChatColor.LIGHT_PURPLE
                                 + " does not exist or isnt supported!");
@@ -259,30 +259,28 @@ public class UniversalPluginManager extends JavaPlugin {
                             + "/upm load-cfg <pluginname>");
 
                 } else if (args[0].equalsIgnoreCase("save-cfg")) {
-                    if (args.length>1&&args[1] != null)
-                        if (loaded)
-                            if (changed)
-                                if (getSupportedPlugins().contains(args[1])) {
-                                    Plugin pl = Bukkit.getPluginManager().getPlugin(args[1]);
-                                    try {
-                                        saveExternalPluginConfig(pl);
-                                        cm.sendMessage(ChatColor.LIGHT_PURPLE
-                                                + "Config saved successfull");
-                                        this.changed = false;
-                                    } catch (IOException e) {
-                                        cm.sendMessage(ChatColor.RED + "Error while saving config!");
-                                    }
-                                } else cm.sendMessage(ChatColor.LIGHT_PURPLE + "Plugin "
-                                        + ChatColor.GOLD + args[1] + ChatColor.LIGHT_PURPLE
-                                        + " does not exist or isnt supported!");
-                            else cm.sendMessage(ChatColor.LIGHT_PURPLE
-                                    + "Nothing to save, config isnt changed!");
+                    if (loaded)
+                        if (changed)
+                            if (getSupportedPlugins().contains(loadedplugin)) {
+                                Plugin pl = Bukkit.getPluginManager().getPlugin(loadedplugin);
+                                try {
+                                    saveExternalPluginConfig(pl);
+                                    cm.sendMessage(ChatColor.LIGHT_PURPLE
+                                            + "Config saved successfull");
+                                    this.changed = false;
+                                    this.loaded = false;
+                                } catch (IOException e) {
+                                    cm.sendMessage(ChatColor.RED + "Error while saving config!");
+                                }
+                            } else cm.sendMessage(ChatColor.LIGHT_PURPLE + "Plugin "
+                                    + ChatColor.GOLD + loadedplugin + ChatColor.LIGHT_PURPLE
+                                    + " does not exist or isnt supported!");
                         else cm.sendMessage(ChatColor.LIGHT_PURPLE
-                                + "Nothing to save, config isnt loaded!");
-                    else cm.sendMessage(ChatColor.LIGHT_PURPLE + "Usage: " + ChatColor.GOLD
-                            + "/upm save-cfg <pluginname>");
+                                + "Nothing to save, config isnt changed!");
+                    else cm.sendMessage(ChatColor.LIGHT_PURPLE
+                            + "Nothing to save, config isnt loaded!");
                 } else if (args[0].equalsIgnoreCase("update")) {
-                    if (args.length>1&&args[1] != null) {
+                    if (args.length > 1 && args[1] != null) {
                         if (getSupportedPlugins().contains(args[1])) {
                             Plugin pl = Bukkit.getPluginManager().getPlugin(args[1]);
                             try {
@@ -308,11 +306,13 @@ public class UniversalPluginManager extends JavaPlugin {
                         String installedVersion = pl.getDescription().getVersion();
                         String updateURL = pl.getConfig().getString("upm_update");
                         String[] information = getLatestPluginInformation(updateURL);
-                        cm.sendMessage(ChatColor.LIGHT_PURPLE + name + " || " + installedVersion
-                                + " || " + information[0] + " || " + information[1]);
+                        if (!(installedVersion.equals(information[0])))
+                            cm.sendMessage(ChatColor.LIGHT_PURPLE + name + " || "
+                                    + installedVersion + " || " + information[0] + " || "
+                                    + information[1]);
                     }
                 } else if (args[0].equalsIgnoreCase("set-cfg")) {
-                    if (args.length>3&&args[1] != null && args[2] != null)
+                    if (args.length > 2 && args[1] != null && args[2] != null)
                         if (loaded) {
                             if (pluginconfig.get(args[1]) != null) {
                                 cm.sendMessage(ChatColor.LIGHT_PURPLE + "Current Value of "
@@ -337,7 +337,7 @@ public class UniversalPluginManager extends JavaPlugin {
                             + "/UPM set-cfg <path> <value> ");
                 } else if (args[0].equalsIgnoreCase("show-cfg")) {
                     if (loaded)
-                        if (args.length>1&&args[1] != null)
+                        if (args.length > 1 && args[1] != null)
                             if (pluginconfig.get(args[1]) != null)
                                 cm.sendMessage(ChatColor.LIGHT_PURPLE + "Current Value of "
                                         + args[1] + ":" + ChatColor.GOLD
@@ -350,7 +350,7 @@ public class UniversalPluginManager extends JavaPlugin {
                             + ChatColor.GOLD + "/UPM load-cfg <pluginname> "
                             + ChatColor.LIGHT_PURPLE + " to load a Config.");
                 } else if (args[0].equalsIgnoreCase("set-password")) {
-                    if (args.length>3&&args[1] != null && args[2] != null) {
+                    if (args.length > 2 && args[1] != null && args[2] != null) {
                         if (args[1].equals(parentconfig.getString("password"))) {
                             parentconfig.set("password", args[2]);
                             man.saveConfig(parentconfig);
@@ -382,5 +382,12 @@ public class UniversalPluginManager extends JavaPlugin {
 
         }
         return true;
+    }
+
+    private FileConfiguration loadExternalConfig(Plugin pl) {
+        File filePath = new File(pl.getDataFolder(), "config.yml");
+        Bukkit.broadcastMessage(filePath + "");
+        YamlConfiguration config = new YamlConfiguration();
+        return config.loadConfiguration(filePath);
     }
 }
