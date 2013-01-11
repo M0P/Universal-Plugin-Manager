@@ -1,6 +1,8 @@
 package com.minecraftserver.universalpluginmanager;
 
 import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
 
@@ -12,8 +14,9 @@ public class ChatManager implements Listener {
     public ChatManager(UniversalPluginManager parent) {
         plugin = parent;
     }
-
-    public void playerChat(AsyncPlayerChatEvent e) {
+    
+    @EventHandler(priority = EventPriority.NORMAL)
+    public void onplayerChat(AsyncPlayerChatEvent e) {
         if (!chatON && player != null) e.getRecipients().remove(player);
 
     }
