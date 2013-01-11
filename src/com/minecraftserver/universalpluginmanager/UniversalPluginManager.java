@@ -96,6 +96,7 @@ public class UniversalPluginManager extends JavaPlugin {
                 String out;
                 try {
                     String updateURL = getPluginUpdateURL(u);
+                    Bukkit.broadcastMessage(u);
                     if (u == null) return;
                     File to = new File(plugin.getServer().getUpdateFolderFile(), updateURL
                             .substring(updateURL.lastIndexOf('/') + 1, updateURL.length()));
@@ -129,6 +130,7 @@ public class UniversalPluginManager extends JavaPlugin {
         URL url;
         try {
             url = new URL(u);
+            Bukkit.broadcastMessage(u);
             HttpURLConnection con = (HttpURLConnection) url.openConnection();
             con.connect();
             int res = con.getResponseCode();
@@ -153,6 +155,7 @@ public class UniversalPluginManager extends JavaPlugin {
                 nv = (String) jo.get("version");
                 cl = (String) jo.get("changelog");
                 String[] result = { nv, cl };
+                Bukkit.broadcastMessage(result.toString());
                 return result;
             } catch (Exception e) {
                 ir.close();
@@ -169,6 +172,7 @@ public class UniversalPluginManager extends JavaPlugin {
         URL url;
         try {
             url = new URL(u);
+            Bukkit.broadcastMessage(u);
             HttpURLConnection con = (HttpURLConnection) url.openConnection();
             con.connect();
             int res = con.getResponseCode();
@@ -232,7 +236,7 @@ public class UniversalPluginManager extends JavaPlugin {
                     for (String s : getSupportedPlugins())
                         cm.sendMessage(ChatColor.LIGHT_PURPLE + s);
                 } else if (args[0].equalsIgnoreCase("load-cfg")) {
-                    if (args[1] != null) {
+                    if (args.length>1&&args[1] != null) {
                         if (getSupportedPlugins().contains(args[1])) {
                             Plugin pl = Bukkit.getPluginManager().getPlugin(args[1]);
                             if (changed) {
@@ -255,7 +259,7 @@ public class UniversalPluginManager extends JavaPlugin {
                             + "/upm load-cfg <pluginname>");
 
                 } else if (args[0].equalsIgnoreCase("save-cfg")) {
-                    if (args[1] != null)
+                    if (args.length>1&&args[1] != null)
                         if (loaded)
                             if (changed)
                                 if (getSupportedPlugins().contains(args[1])) {
@@ -278,7 +282,7 @@ public class UniversalPluginManager extends JavaPlugin {
                     else cm.sendMessage(ChatColor.LIGHT_PURPLE + "Usage: " + ChatColor.GOLD
                             + "/upm save-cfg <pluginname>");
                 } else if (args[0].equalsIgnoreCase("update")) {
-                    if (args[1] != null) {
+                    if (args.length>1&&args[1] != null) {
                         if (getSupportedPlugins().contains(args[1])) {
                             Plugin pl = Bukkit.getPluginManager().getPlugin(args[1]);
                             try {
@@ -308,7 +312,7 @@ public class UniversalPluginManager extends JavaPlugin {
                                 + " || " + information[0] + " || " + information[1]);
                     }
                 } else if (args[0].equalsIgnoreCase("set-cfg")) {
-                    if (args[1] != null && args[2] != null)
+                    if (args.length>3&&args[1] != null && args[2] != null)
                         if (loaded) {
                             if (pluginconfig.get(args[1]) != null) {
                                 cm.sendMessage(ChatColor.LIGHT_PURPLE + "Current Value of "
@@ -333,7 +337,7 @@ public class UniversalPluginManager extends JavaPlugin {
                             + "/UPM set-cfg <path> <value> ");
                 } else if (args[0].equalsIgnoreCase("show-cfg")) {
                     if (loaded)
-                        if (args[1] != null)
+                        if (args.length>1&&args[1] != null)
                             if (pluginconfig.get(args[1]) != null)
                                 cm.sendMessage(ChatColor.LIGHT_PURPLE + "Current Value of "
                                         + args[1] + ":" + ChatColor.GOLD
@@ -346,7 +350,7 @@ public class UniversalPluginManager extends JavaPlugin {
                             + ChatColor.GOLD + "/UPM load-cfg <pluginname> "
                             + ChatColor.LIGHT_PURPLE + " to load a Config.");
                 } else if (args[0].equalsIgnoreCase("set-password")) {
-                    if (args[1] != null && args[2] != null) {
+                    if (args.length>3&&args[1] != null && args[2] != null) {
                         if (args[1].equals(parentconfig.getString("password"))) {
                             parentconfig.set("password", args[2]);
                             man.saveConfig(parentconfig);
