@@ -1,7 +1,7 @@
 name: UniversalPluginManager
 main: com.minecraftserver.universalpluginmanager.UniversalPluginManager
 website: http://www.minecraftserver.com/
-version: 0.13 Alpha
+version: 0.14 Alpha
 author: M0P
 commands:
    upm:

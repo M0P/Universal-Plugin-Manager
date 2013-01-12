@@ -1,3 +1,5 @@
 password: test
 upm: true
 upm_update: http://www.pvp.mcs.square7.ch/upm.json
+upm_configtype:
+    password: string
