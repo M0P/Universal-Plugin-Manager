@@ -1,13 +1,25 @@
 name: UniversalPluginManager
 main: com.minecraftserver.universalpluginmanager.UniversalPluginManager
 website: http://www.minecraftserver.com/
-version: 0.14 Alpha
+version: 0.30 Beta
 author: M0P
 commands:
    upm:
       description: Manage your Plugins
       
 permissions:
-    pvptoolkit.fly.invincible:
-        description: Makes you invincible while flying
+    upm.limited:
+        description: limited access to upm
+        default: op
+    upm.update:
+        description: update access to upm
+        default: op
+    upm.config.show:
+        description: config change access to upm
+        default: op
+    upm.config.edit:
+        description: config change access to upm
+        default: op
+    upm.admin:
+        description: config change access to upm
         default: op

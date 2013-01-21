@@ -42,6 +42,9 @@ public class UniversalPluginManager extends JavaPlugin {
     private FileConfiguration pluginconfig;
     private String            loadedplugin;
     private Plugin            pl;
+    private String[]          tempargs;
+    private String            temptype;
+    private List<String>      templist;
 
     public void onEnable() {
         if (!getDataFolder().exists()) getDataFolder().mkdir();
@@ -88,7 +91,6 @@ public class UniversalPluginManager extends JavaPlugin {
 
     private void saveExternalPluginConfig(Plugin pl) throws IOException {
         File filePath = new File(pl.getDataFolder(), "config.yml");
-        Bukkit.broadcastMessage(filePath + "");
         pluginconfig.save(filePath);
     }
 
@@ -214,7 +216,9 @@ public class UniversalPluginManager extends JavaPlugin {
                 player.sendMessage(ChatColor.LIGHT_PURPLE + "Usage: " + ChatColor.GOLD
                         + "/UPM <password> ");
             } else if (!locked) {
-                if (args[0].equalsIgnoreCase(parentconfig.getString("password"))) {
+                if (args[0].equals(parentconfig.getString("password"))
+                        && (player.hasPermission("upm.limited") || player.isOp() || player
+                                .hasPermission("upm.admin"))) {
                     this.player = player;
                     this.playerID = player.getUniqueId();
                     cm.disableChat(player);
@@ -231,11 +235,15 @@ public class UniversalPluginManager extends JavaPlugin {
                     loaded = false;
                     cm.sendMessage(ChatColor.LIGHT_PURPLE + "UPM Mode disabled");
                     cm.enableChat();
-                } else if (args[0].equalsIgnoreCase("list")) {
+                } else if (args[0].equalsIgnoreCase("list")
+                        && (player.hasPermission("upm.limited") || player.isOp() || player
+                                .hasPermission("upm.admin"))) {
                     cm.sendMessage(ChatColor.LIGHT_PURPLE + "Supported Plugins:\n------------");
                     for (String s : getSupportedPlugins())
                         cm.sendMessage(ChatColor.LIGHT_PURPLE + s);
-                } else if (args[0].equalsIgnoreCase("load-cfg")) {
+                } else if (args[0].equalsIgnoreCase("load-cfg")
+                        && (player.hasPermission("upm.config.show") || player.isOp() || player
+                                .hasPermission("upm.admin"))) {
                     if (args.length > 1 && args[1] != null) {
                         if (getSupportedPlugins().contains(args[1])) {
                             pl = Bukkit.getPluginManager().getPlugin(args[1]);
@@ -244,14 +252,8 @@ public class UniversalPluginManager extends JavaPlugin {
                                         + "There are unsafed changes in the loaded config."
                                         + " You really want to load another config?\n"
                                         + "To confirm type: " + ChatColor.GOLD + "YES");
-                                cm.sendMessage(ChatColor.GRAY + "TODO, not implemted yet...");
-                            }
-                            // TODO unsaved changes? really want to load?
-                            pluginconfig = loadExternalConfig(pl);
-                            cm.sendMessage(ChatColor.LIGHT_PURPLE + "Config loaded successfull");
-                            this.loaded = true;
-                            this.changed = false;
-                            this.loadedplugin = pl.getName();
+                                cm.requestConfirmation(1);
+                            } else loadCFG();
                         } else cm.sendMessage(ChatColor.LIGHT_PURPLE + "Plugin " + ChatColor.GOLD
                                 + args[1] + ChatColor.LIGHT_PURPLE
                                 + " does not exist or isnt supported!");
@@ -259,7 +261,9 @@ public class UniversalPluginManager extends JavaPlugin {
                     } else cm.sendMessage(ChatColor.LIGHT_PURPLE + "Usage: " + ChatColor.GOLD
                             + "/upm load-cfg <pluginname>");
 
-                } else if (args[0].equalsIgnoreCase("save-cfg")) {
+                } else if (args[0].equalsIgnoreCase("save-cfg")
+                        && (player.hasPermission("upm.config.edit") || player.isOp() || player
+                                .hasPermission("upm.admin"))) {
                     if (loaded)
                         if (changed)
                             if (getSupportedPlugins().contains(loadedplugin)) {
@@ -280,7 +284,9 @@ public class UniversalPluginManager extends JavaPlugin {
                                 + "Nothing to save, config isnt changed!");
                     else cm.sendMessage(ChatColor.LIGHT_PURPLE
                             + "Nothing to save, config isnt loaded!");
-                } else if (args[0].equalsIgnoreCase("update")) {
+                } else if (args[0].equalsIgnoreCase("update")
+                        && (player.hasPermission("upm.update") || player.isOp() || player
+                                .hasPermission("upm.admin"))) {
                     if (args.length > 1 && args[1] != null) {
                         if (getSupportedPlugins().contains(args[1])) {
                             pl = Bukkit.getPluginManager().getPlugin(args[1]);
@@ -298,7 +304,9 @@ public class UniversalPluginManager extends JavaPlugin {
 
                     } else cm.sendMessage(ChatColor.LIGHT_PURPLE + "Usage: " + ChatColor.GOLD
                             + "/upm update <pluginname>");
-                } else if (args[0].equalsIgnoreCase("check-updates")) {
+                } else if (args[0].equalsIgnoreCase("check-updates")
+                        && (player.hasPermission("upm.limited") || player.isOp() || player
+                                .hasPermission("upm.admin"))) {
                     cm.sendMessage(ChatColor.LIGHT_PURPLE
                             + "Name || Installed Version || Newest Version || Latest Changes");
                     for (String s : getSupportedPlugins()) {
@@ -307,74 +315,90 @@ public class UniversalPluginManager extends JavaPlugin {
                         String installedVersion = pl.getDescription().getVersion();
                         String updateURL = pl.getConfig().getString("upm_update");
                         String[] information = getLatestPluginInformation(updateURL);
-                        if (!(installedVersion.equals(information[0])))
+                        if (information != null && !(installedVersion.equals(information[0])))
                             cm.sendMessage(ChatColor.LIGHT_PURPLE + name + " || "
                                     + installedVersion + " || " + information[0] + " || "
                                     + ChatColor.GREEN + information[1]);
                     }
-                } else if (args[0].equalsIgnoreCase("set-cfg")) {
+                } else if (args[0].equalsIgnoreCase("set-cfg")
+                        && (player.hasPermission("upm.config.edit") || player.isOp() || player
+                                .hasPermission("upm.admin"))) {
                     if (args.length > 2 && args[1] != null && args[2] != null)
                         if (loaded) {
                             try {
                                 String type = pluginconfig.getString("upm_configtype." + args[1]);
                                 if (pluginconfig.get(args[1]) != null) {
                                     if (type.equals("list")) {
-                                        // Creating error, because not supported
-                                        // yet
-                                        cm.sendMessage(ChatColor.LIGHT_PURPLE
-                                                + "Editing of lists isnt supported yet, sorry.");
-                                        int error = 2 / 0;
+                                        List<String> list = (List<String>) pluginconfig
+                                                .getList(args[1]);
+                                        if (args[2].equalsIgnoreCase("add") && args.length > 3) {
+                                            cm.sendMessage(ChatColor.LIGHT_PURPLE + "Adding "
+                                                    + args[3] + " to list");
+                                            cm.sendMessage(ChatColor.RED + "To Confirm type "
+                                                    + ChatColor.GOLD + "YES");
+                                            templist = list;
+                                            tempargs = args;
+                                            temptype = type;
+                                            cm.requestConfirmation(2);
+                                        } else if (args[2].equalsIgnoreCase("remove")
+                                                && args.length > 3) {
+                                            cm.sendMessage(ChatColor.LIGHT_PURPLE + "Removing "
+                                                    + args[3] + " from list");
+                                            cm.sendMessage(ChatColor.RED + "To Confirm type "
+                                                    + ChatColor.GOLD + "YES");
+                                            templist = list;
+                                            tempargs = args;
+                                            temptype = type;
+                                            cm.requestConfirmation(2);
+
+                                        } else if (args[2].equalsIgnoreCase("show")) {
+                                            cm.sendMessage(ChatColor.LIGHT_PURPLE
+                                                    + "Current List values:");
+                                            for (String s : list)
+                                                cm.sendMessage("- " + s);
+                                        } else cm.sendMessage(ChatColor.LIGHT_PURPLE + "Usage:"
+                                                + ChatColor.GOLD
+                                                + "/UPM set-cfg <path> <add/remove/show> (value)");
+                                    } else {
+                                        cm.sendMessage(ChatColor.LIGHT_PURPLE + "Current Value of "
+                                                + args[1] + ":" + ChatColor.GOLD
+                                                + pluginconfig.getString(args[1]) + " (" + type
+                                                + ")");
+                                        cm.sendMessage(ChatColor.LIGHT_PURPLE + "New Value of "
+                                                + args[1] + ":" + ChatColor.GOLD + args[2]);
+                                        cm.sendMessage(ChatColor.RED + "To Confirm type "
+                                                + ChatColor.GOLD + "YES");
+                                        tempargs = args;
+                                        temptype = type;
+                                        cm.requestConfirmation(2);
                                     }
-                                    cm.sendMessage(ChatColor.LIGHT_PURPLE + "Current Value of "
-                                            + args[1] + ":" + ChatColor.GOLD
-                                            + pluginconfig.getString(args[1]) + " (" + type + ")");
-                                    cm.sendMessage(ChatColor.LIGHT_PURPLE + "New Value of "
-                                            + args[1] + ":" + ChatColor.GOLD + args[2]);
                                 } else {
                                     type = "string";
                                     cm.sendMessage(ChatColor.LIGHT_PURPLE
                                             + "No Current Value found. Inserting new Value for "
                                             + args[1] + ":" + ChatColor.GOLD + args[2]);
+                                    cm.sendMessage(ChatColor.RED + "To Confirm type "
+                                            + ChatColor.GOLD + "YES");
+                                    tempargs = args;
+                                    temptype = type;
+                                    cm.requestConfirmation(2);
                                 }
-                                cm.sendMessage(ChatColor.RED + "To Confirm type " + ChatColor.GOLD
-                                        + "YES");
-                                cm.sendMessage(ChatColor.GRAY + "TODO, not implemted yet...");
-
-                                // TODO confirmation question
-                                // Error fix: try to get real value of args[2]
-                                if (type.equals("double")) {
-                                    double args2 = Double.parseDouble(args[2]);
-                                    pluginconfig.set(args[1], args2);
-                                } else if (type.equals("int")) {
-                                    int args2 = Integer.parseInt(args[2]);
-                                    pluginconfig.set(args[1], args2);
-                                } else if (type.equals("list")) {
-                                    // TODO not supported yet
-                                    // List args2 = ;
-                                    // pluginconfig.set(args[1], args2);
-                                } else if (type.equals("boolean")) {
-                                    int error;
-                                    if (args[2].equals("true") || args[2].equals("yes")) {
-                                        boolean args2 = true;
-                                        pluginconfig.set(args[1], args2);
-                                    } else if (args[2].equals("false") || args[2].equals("no")) {
-                                        boolean args2 = false;
-                                        pluginconfig.set(args[1], args2);
-                                    } else error = 2 / 0;
-                                } else pluginconfig.set(args[1], args[2]); // its
-                                                                           // a
-                                                                           // string
-                                cm.sendMessage(ChatColor.GREEN + "Config changed!");
-                                changed = true;
                             } catch (Exception e) {
-                                cm.sendMessage(ChatColor.RED + "Error while changing config!");
+                                cm.sendMessage(e.getLocalizedMessage());
+                                cm.sendMessage(e.getMessage());
+                                e.printStackTrace();
+                                // cm.sendMessage(ChatColor.RED +
+                                // "Error while changing config!");
+                                // cm.sendMessage(e.getMessage());
                             }
                         } else cm.sendMessage(ChatColor.LIGHT_PURPLE + "No Plugin loaded! Use "
                                 + ChatColor.GOLD + "/UPM load-cfg <pluginname> "
                                 + ChatColor.LIGHT_PURPLE + " to load a Config.");
                     else cm.sendMessage(ChatColor.LIGHT_PURPLE + "Usage: " + ChatColor.GOLD
                             + "/UPM set-cfg <path> <value> ");
-                } else if (args[0].equalsIgnoreCase("show-cfg")) {
+                } else if (args[0].equalsIgnoreCase("show-cfg")
+                        && (player.hasPermission("upm.config.show") || player.isOp() || player
+                                .hasPermission("upm.admin"))) {
                     if (loaded)
                         if (args.length > 1 && args[1] != null)
                             if (pluginconfig.get(args[1]) != null)
@@ -388,7 +412,9 @@ public class UniversalPluginManager extends JavaPlugin {
                     else cm.sendMessage(ChatColor.LIGHT_PURPLE + "No Plugin loaded! Use "
                             + ChatColor.GOLD + "/UPM load-cfg <pluginname> "
                             + ChatColor.LIGHT_PURPLE + " to load a Config.");
-                } else if (args[0].equalsIgnoreCase("set-password")) {
+                } else if (args[0].equalsIgnoreCase("set-password")
+                        && (player.hasPermission("upm.config.edit") || player.isOp() || player
+                                .hasPermission("upm.admin"))) {
                     if (args.length > 2 && args[1] != null && args[2] != null) {
                         if (args[1].equals(parentconfig.getString("password"))) {
                             parentconfig.set("password", args[2]);
@@ -422,9 +448,66 @@ public class UniversalPluginManager extends JavaPlugin {
         return true;
     }
 
+    void changeValue() {
+        try {
+            int error;
+            if (tempargs == null || temptype == null) error = 2 / 0;
+            String type = temptype;
+            String[] args = tempargs;
+            List<String> list = templist;
+            // Error fix: try to get real value of args[2]
+            if (type.equals("double")) {
+                double args2 = Double.parseDouble(args[2]);
+                pluginconfig.set(args[1], args2);
+            } else if (type.equals("int")) {
+                int args2 = Integer.parseInt(args[2]);
+                pluginconfig.set(args[1], args2);
+            } else if (type.equals("list") && list != null) {
+                if (args[2].equalsIgnoreCase("add")) {
+                    if (!list.contains(args[3])) {
+                        list.add(args[3]);
+                        pluginconfig.set(args[1], list);
+                    }
+                } else if (args[2].equalsIgnoreCase("remove")) {
+                    if (list.contains(args[3])) {
+                        list.remove(args[3]);
+                        pluginconfig.set(args[1], list);
+                    }
+                } else error = 2 / 0;
+            } else if (type.equals("boolean")) {
+                if (args[2].equals("true") || args[2].equals("yes")) {
+                    boolean args2 = true;
+                    pluginconfig.set(args[1], args2);
+                } else if (args[2].equals("false") || args[2].equals("no")) {
+                    boolean args2 = false;
+                    pluginconfig.set(args[1], args2);
+                } else error = 2 / 0;
+            } else pluginconfig.set(args[1], args[2]); // its
+                                                       // a
+                                                       // string
+            cm.sendMessage(ChatColor.GREEN + "Config changed!");
+            changed = true;
+            templist = null;
+            tempargs = null;
+            temptype = null;
+        } catch (Exception e) {
+            templist = null;
+            tempargs = null;
+            temptype = null;
+            cm.sendMessage(ChatColor.RED + "Invalid value for config node!");
+        }
+    }
+
+    void loadCFG() {
+        pluginconfig = loadExternalConfig(pl);
+        cm.sendMessage(ChatColor.LIGHT_PURPLE + "Config loaded successfull");
+        this.loaded = true;
+        this.changed = false;
+        this.loadedplugin = pl.getName();
+    }
+
     private FileConfiguration loadExternalConfig(Plugin pl) {
         File filePath = new File(pl.getDataFolder(), "config.yml");
-        Bukkit.broadcastMessage(filePath + "");
         YamlConfiguration config = new YamlConfiguration();
         return config.loadConfiguration(filePath);
     }
