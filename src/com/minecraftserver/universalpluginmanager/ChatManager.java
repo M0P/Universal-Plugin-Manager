@@ -8,15 +8,15 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
 
 public class ChatManager implements Listener {
-    private UniversalPluginManager plugin;
-    private boolean                chatON;
-    private boolean                request;
-    private int                    type;
-    private Player                 player;
+    private final UniversalPluginManager plugin;
+    private boolean                      chatON;
+    private boolean                      request;
+    private int                          type;
+    private Player                       player;
 
     public ChatManager(UniversalPluginManager parent) {
         plugin = parent;
-        chatON=true;
+        chatON = true;
     }
 
     @EventHandler(priority = EventPriority.NORMAL)
@@ -34,6 +34,22 @@ public class ChatManager implements Listener {
                 e.setCancelled(true);
             } else if (player != null) e.getRecipients().remove(player);
         }
+
+    }
+
+    private void executeAction() {
+        switch (type) {
+        case 1:
+            plugin.loadCFG();
+            break;
+        case 2:
+            plugin.changeValue();
+            break;
+        default:
+            sendMessage(ChatColor.RED + "Error while reading chat");
+        }
+        type = -1;
+        request = false;
 
     }
 
@@ -58,23 +74,8 @@ public class ChatManager implements Listener {
 
     }
 
-    private void executeAction() {
-        switch (type) {
-        case 1:
-            plugin.loadCFG();
-            break;
-        case 2:
-            plugin.changeValue();
-            break;
-        default:
-            sendMessage(ChatColor.RED + "Error while reading chat");
-        }
-        type = -1;
-        request = false;
-
-    }
-
     void sendMessage(String message) {
-        if (!chatON && player != null && message != null) player.sendMessage(message);
+        if (!chatON && player != null && message != null)
+            player.sendMessage(message);
     }
 }

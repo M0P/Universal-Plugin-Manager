@@ -1,7 +1,7 @@
 {
   "versions": {
-    "version": "0.30 Beta",
+    "version": "0.32 Beta",
     "download": "http://www.pvp.mcs.square7.ch/UPM.jar"
-    "changelog": "Bug Fixes"
+    "changelog": "made config more editable"
   }
 }
